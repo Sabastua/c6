@@ -29,22 +29,7 @@ A high-end, dynamic Web Application built for DJ C6 to manage bookings, merchand
 2. **Configure Environment Variables:**
    Create a `.env.local` file in the root directory and populate it with your specific API credentials:
    ```ini
-   # M-Pesa Daraja Sandbox
-   MPESA_CONSUMER_KEY=your_key_here
-   MPESA_CONSUMER_SECRET=your_secret_here
-   MPESA_SHORTCODE=174379
-   MPESA_PASSKEY=bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
-   MPESA_CALLBACK_URL=https://your-domain.ngrok.io/api/mpesa-callback
-   
-   # WhatsApp Business Cloud
-   WHATSAPP_PHONE_NUMBER_ID=your_id
-   WHATSAPP_ACCESS_TOKEN=your_token
-   DJ_WHATSAPP_NUMBER=254706404928
-   
-   # Firebase Database
-   FIREBASE_API_KEY=your_key
-   FIREBASE_AUTH_DOMAIN=your_domain
-   FIREBASE_PROJECT_ID=your_project
+  
    ```
    *(Note: To test M-Pesa callbacks on `localhost`, use `ngrok` or `localtunnel` to route Daraja webhooks to your local machine).*
 

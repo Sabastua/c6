@@ -1,25 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stkPush } from '@/lib/mpesa';
-
-async function sendWhatsApp(message: string) {
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID!;
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN!;
-  const djPhone = process.env.DJ_WHATSAPP_NUMBER!;
-  try {
-    await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: djPhone,
-        type: 'text',
-        text: { body: message },
-      }),
-    });
-  } catch (err) {
-    console.error('WhatsApp notification failed:', err);
-  }
-}
+import { db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,24 +26,26 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const waMsg = [
-      `📅 *New Booking Request*`,
-      ``,
-      `👤 Client: ${clientName}`,
-      `📞 Phone: ${phone}`,
-      `📧 Email: ${email || 'N/A'}`,
-      `🎉 Event: ${eventName || eventType}`,
-      `📌 Type: ${eventType}`,
-      `🗓️ Date: ${date}`,
-      `📍 Location: ${location || 'TBD'}`,
-      `👥 Guests: ${guests || 'TBD'}`,
-      `📝 Notes: ${notes || 'None'}`,
-      ``,
-      `💰 Deposit: KES ${deposit?.toLocaleString()} via M-Pesa`,
-      `🔑 CheckoutID: ${mpesaResult.CheckoutRequestID}`,
-    ].join('\n');
-
-    await sendWhatsApp(waMsg);
+    // Save to Firebase for callback
+    try {
+      await setDoc(doc(db, 'mpesa_payments', mpesaResult.CheckoutRequestID), {
+        type: 'BOOKING',
+        clientName,
+        phone,
+        email: email || '',
+        eventName: eventName || '',
+        eventType,
+        date,
+        location: location || '',
+        guests: guests || '',
+        notes: notes || '',
+        amount: deposit,
+        status: 'pending',
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      console.error('Firebase save failed:', e);
+    }
 
     return NextResponse.json({ success: true, checkoutRequestId: mpesaResult.CheckoutRequestID });
   } catch (err: any) {

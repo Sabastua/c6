@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stkPush } from '@/lib/mpesa';
+import { db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,6 +25,20 @@ export async function POST(req: NextRequest) {
         success: false, 
         error: mpesaResult.errorMessage || mpesaResult.CustomerMessage || 'M-Pesa error' 
       }, { status: 400 });
+    }
+
+    // Save to Firebase for callback
+    try {
+      await setDoc(doc(db, 'mpesa_payments', mpesaResult.CheckoutRequestID), {
+        type: 'TIP',
+        phone,
+        amount: parsedAmount,
+        mixTitle: mixTitle || 'DJ C6',
+        status: 'pending',
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      console.error('Firebase save failed:', e);
     }
 
     return NextResponse.json({ 

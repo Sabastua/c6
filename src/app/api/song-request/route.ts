@@ -23,10 +23,15 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // 2. Save the request into Firebase
+    // 2. Save the request into Firebase (Unified collection)
     try {
-      await setDoc(doc(db, 'song_requests', mpesaResult.CheckoutRequestID), {
-        name, phone, song, artist: artist || '', message: message || '',
+      await setDoc(doc(db, 'mpesa_payments', mpesaResult.CheckoutRequestID), {
+        type: 'SONG_REQUEST',
+        name, 
+        phone, 
+        song, 
+        artist: artist || '', 
+        message: message || '',
         amount: parsedAmount,
         status: 'pending',
         timestamp: new Date().toISOString()

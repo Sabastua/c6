@@ -1,55 +1,90 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { sendWhatsApp } from '@/lib/whatsapp';
+
+async function sendWhatsApp(message: string) {
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID!;
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN!;
+  const djPhone = process.env.DJ_WHATSAPP_NUMBER!;
+  try {
+    await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: djPhone,
+        type: 'text',
+        text: { body: message },
+      }),
+    });
+  } catch (err) {
+    console.error('WhatsApp notify failed:', err);
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
-    const stksCallback = data?.Body?.stkCallback;
+    const stkCallback = data?.Body?.stkCallback;
     
-    if (!stksCallback) {
-      return NextResponse.json({ success: false, message: 'Invalid callback payload' }, { status: 400 });
+    if (!stkCallback) {
+      return NextResponse.json({ ResultCode: 1, ResultDesc: "Rejected" });
     }
 
-    const { CheckoutRequestID, ResultCode, CallbackMetadata } = stksCallback;
+    const { CheckoutRequestID, ResultCode, CallbackMetadata } = stkCallback;
 
-    // Check if payment was successful (ResultCode 0 is success in Daraja)
+    // Fetch the pending payment from Firebase
+    const docRef = doc(db, 'mpesa_payments', CheckoutRequestID);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      return NextResponse.json({ ResultCode: 0, ResultDesc: "Success" });
+    }
+
+    const paymentData = docSnap.data();
+
+    // ─── CASE: SUCCESS ──────────────────────────────────────────────────────────
     if (ResultCode === 0 && CallbackMetadata) {
-      // It was successful. Get the metadata items like Receipt and Phone.
-      const getMetaItem = (name: string) => CallbackMetadata.Item.find((i: any) => i.Name === name)?.Value;
-      const receipt = getMetaItem('MpesaReceiptNumber');
-      const amount = getMetaItem('Amount');
-      const phone = getMetaItem('PhoneNumber');
+      const getMeta = (name: string) => CallbackMetadata.Item.find((i: any) => i.Name === name)?.Value;
+      const receipt = getMeta('MpesaReceiptNumber');
+      const amount = getMeta('Amount');
 
-      // Fetch the reserved song details from Firebase
-      const docRef = doc(db, 'song_requests', CheckoutRequestID);
-      const docSnap = await getDoc(docRef);
+      let waMsg = '';
 
-      if (docSnap.exists()) {
-        const { name, song, artist, message } = docSnap.data();
+      switch (paymentData.type) {
+        case 'TIP':
+          waMsg = `💰 *New Tip Received!*\n\n🔥 Mix: ${paymentData.mixTitle}\n💵 Amount: KES ${amount}\n📱 Phone: ${paymentData.phone}\n🧾 Receipt: ${receipt}`;
+          break;
+        
+        case 'SONG_REQUEST':
+          waMsg = `🎶 *Song Request Paid*\n\n👤 Fan: ${paymentData.name}\n🎵 Song: ${paymentData.song}\n💵 Amount: KES ${amount}\n💬 Msg: ${paymentData.message || 'None'}\n🧾 Receipt: ${receipt}`;
+          break;
 
-        // Fire WhatsApp dynamically
-        const waMsg = `✅ *Paid Song Request*\n\n👤 Fan: ${name}\n📞 Phone: ${phone}\n🎶 Song: ${song}${artist ? ` by ${artist}` : ''}\n💬 Message: ${message || 'No message'}\n\n💰 Paid: KES ${amount} (Receipt: ${receipt})`;
-        await sendWhatsApp(waMsg);
+        case 'MERCH':
+          waMsg = `🛍️ *Merch Order Paid*\n\n📦 Item: ${paymentData.itemName}\n📏 Size: ${paymentData.size}\n💵 Amount: KES ${amount}\n📱 Phone: ${paymentData.phone}\n🧾 Receipt: ${receipt}\n\n🚀 Time to fulfill!`;
+          break;
 
-        // Update database as completed securely
-        await updateDoc(docRef, {
-          status: 'completed',
-          receipt,
-          completedAt: new Date().toISOString()
-        });
+        case 'BOOKING':
+          waMsg = `📅 *Booking Deposit Paid*\n\n👤 Client: ${paymentData.clientName}\n📌 Event: ${paymentData.eventType}\n🗓️ Date: ${paymentData.date}\n💵 Deposit: KES ${amount}\n🧾 Receipt: ${receipt}`;
+          break;
       }
-    } else {
-      // Payment failed or was canceled
-      const docRef = doc(db, 'song_requests', CheckoutRequestID);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-         await updateDoc(docRef, { status: 'failed' });
-      }
+
+      if (waMsg) await sendWhatsApp(waMsg);
+
+      await updateDoc(docRef, {
+        status: 'completed',
+        receipt,
+        completedAt: new Date().toISOString()
+      });
+    } 
+    // ─── CASE: FAILED/CANCELLED ──────────────────────────────────────────────────
+    else {
+      await updateDoc(docRef, { 
+        status: 'failed',
+        failureReason: stkCallback.ResultDesc 
+      });
     }
 
-    // Safaricom explicitly requires us to bounce back success
     return NextResponse.json({ ResultCode: 0, ResultDesc: "Success" });
   } catch (err: any) {
     console.error('Mpesa callback error:', err);

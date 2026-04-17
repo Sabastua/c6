@@ -1,10 +1,26 @@
-'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+
 
 const MIXES = [
-  { title: 'Afrobeats Takeover Vol. 3', genre: 'Afrobeats', date: 'Mar 2025', plays: '12.4K', dur: '58:22', color: '#D4AF37' },
-  { title: 'Amapiano Wave',             genre: 'Amapiano',  date: 'Feb 2025', plays: '8.9K',  dur: '1:12:04', color: '#3DBA6A' },
-  { title: 'Friday Night Vibes',        genre: 'Mixed',     date: 'Jan 2025', plays: '21.3K', dur: '45:11', color: '#D4AF37' },
+  { 
+    id: 'QAf6rFG3dYE', 
+    title: 'AFRO-VIBES LIVE 2024', 
+    list: 'RDQAf6rFG3dYE',
+    description: 'A premium selection of the best Afro-house and Piano tracks.' 
+  },
+  { 
+    id: '8vFiZSsfDp8', 
+    title: 'LATEST LIVE VIBES 2024', 
+    list: 'RD8vFiZSsfDp8',
+    description: 'The freshest Afrobeats, Amapiano & Gengetone set.' 
+  },
+  { 
+    id: 'R3tMb9myF00', 
+    title: 'URBAN CLUB ANTHEMS', 
+    list: 'RDR3tMb9myF00',
+    description: 'High-energy club bangers and throwback classics.' 
+  },
 ];
 
 const SHOWS = [
@@ -27,91 +43,271 @@ export default function MixesSection() {
   const ref = useRef<HTMLElement>(null);
   useReveal(ref);
 
+  const [tippingId, setTippingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ phone: '', amount: '' });
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState({ show: false, msg: '', ok: true });
+
+  const showToast = (msg: string, ok: boolean) => {
+    setToast({ show: true, msg, ok });
+    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 5000);
+  };
+
+  const handleTip = async (e: React.FormEvent, mixTitle: string) => {
+    e.preventDefault();
+    if (!form.phone || !form.amount) return;
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/tip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, mixTitle }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showToast('STK Push sent! Please check your phone.', true);
+        setTippingId(null);
+        setForm({ phone: '', amount: '' });
+      } else {
+        showToast(data.error || 'Failed to send STK push.', false);
+      }
+    } catch (err) {
+      showToast('Connection error. Try again.', false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <section ref={ref} id="mixes" style={{ padding: '120px 40px', maxWidth: 1100, margin: '0 auto' }}>
-      <div className="reveal" style={{ marginBottom: 56 }}>
-        <p className="label" style={{ marginBottom: 12 }}>Listen &amp; Discover</p>
-        <h2 className="headline">Latest mixes.<br /><span className="text-gold">Always fresh.</span></h2>
+    <section ref={ref} id="mixes" style={{ padding: '120px 20px', maxWidth: 1200, margin: '0 auto' }}>
+      <div className="reveal" style={{ marginBottom: 64, textAlign: 'center' }}>
+        <p className="label" style={{ marginBottom: 16 }}>Listen &amp; Discover</p>
+        <h2 className="headline">
+          <span className="text-gradient">Latest mixes.</span><br />
+          <span className="text-gold">Always fresh.</span>
+        </h2>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 40, alignItems: 'start' }}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 48, alignItems: 'start' }}
         className="block-grid">
 
-        {/* Mixes list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} className="reveal">
-          {MIXES.map((m, i) => (
-            <div key={i} className="glass" style={{
-              borderRadius: 16, padding: '20px 22px',
-              display: 'flex', alignItems: 'center', gap: 18,
-              transition: 'border-color 0.25s, transform 0.25s', cursor: 'pointer',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = m.color + '40'; e.currentTarget.style.transform = 'translateX(4px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.transform = ''; }}
-            >
-              <div style={{
-                width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: m.color + '18', border: `1px solid ${m.color}30`, fontSize: 18,
-              }}>▶</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {m.title}
-                </p>
-                <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'rgba(245,245,247,0.38)', fontWeight: 500 }}>
-                  <span>{m.genre}</span><span>·</span><span>{m.date}</span><span>·</span><span>{m.dur}</span>
+        {/* Mixes List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 64 }}>
+          {/* Featured Mix */}
+          {MIXES.slice(0, 1).map((mix) => (
+            <div key={mix.id} className="reveal" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <div className="glass-card" style={{ borderRadius: 32, padding: 12 }}>
+                <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', borderRadius: 24, overflow: 'hidden', background: '#000' }}>
+                  <iframe
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                    src={`https://www.youtube.com/embed/${mix.id}?list=${mix.list}`}
+                    title={mix.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
                 </div>
               </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: m.color }}>{m.plays}</p>
-                <p style={{ fontSize: 10, color: 'rgba(245,245,247,0.3)', marginTop: 2 }}>plays</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20 }}>
+                <div>
+                  <p className="label" style={{ marginBottom: 6 }}>Featured Set</p>
+                  <h3 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: 8, letterSpacing: '-0.03em' }}>{mix.title}</h3>
+                  <p className="body-sm" style={{ color: 'var(--text-2)' }}>{mix.description}</p>
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button 
+                    onClick={() => {
+                      setTippingId(mix.id);
+                      setForm({ phone: '', amount: '' });
+                    }}
+                    className="btn btn-ghost"
+                    style={{ padding: '14px 24px' }}
+                  >
+                    💰 Tip DJ
+                  </button>
+                  <a href="https://www.youtube.com/@djc6_ke" target="_blank" rel="noopener noreferrer"
+                    className="btn btn-gold" style={{ padding: '14px 28px' }}>
+                    <i className="fab fa-youtube" style={{ fontSize: '1.2rem' }}></i>
+                    Subscribe
+                  </a>
+                </div>
               </div>
             </div>
           ))}
 
-          <a href="https://soundcloud.com" target="_blank" rel="noopener noreferrer"
-            className="btn btn-ghost" style={{ alignSelf: 'flex-start', marginTop: 8 }}>
-            All mixes on SoundCloud →
-          </a>
+          {/* Secondary Mixes Grid */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
+            gap: 32 
+          }}>
+            {MIXES.slice(1).map((mix, idx) => (
+              <div key={mix.id} className="reveal" style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 16,
+                animationDelay: `${(idx + 1) * 0.1}s` 
+              }}>
+                <div className="glass-card" style={{ borderRadius: 24, padding: 8 }}>
+                  <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', borderRadius: 16, overflow: 'hidden', background: '#000' }}>
+                    <iframe
+                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                      src={`https://www.youtube.com/embed/${mix.id}?list=${mix.list}`}
+                      title={mix.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    ></iframe>
+                  </div>
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 6 }}>{mix.title}</h4>
+                  <p className="body-sm" style={{ color: 'var(--text-3)', fontSize: '0.85rem', marginBottom: 12 }}>{mix.description}</p>
+                  <button 
+                    onClick={() => {
+                      setTippingId(mix.id);
+                      setForm({ phone: '', amount: '' });
+                    }}
+                    style={{
+                      background: 'none', border: 'none', color: 'var(--gold)', 
+                      fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0,
+                      textTransform: 'uppercase', letterSpacing: '0.05em'
+                    }}
+                  >
+                    💰 Tip for this mix
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Upcoming + Bio */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} className="reveal">
-          <div className="glass" style={{ borderRadius: 20, padding: 24 }}>
-            <p className="label" style={{ marginBottom: 16 }}>Upcoming Shows</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Sidebar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }} className="reveal">
+          <div className="glass-card" style={{ borderRadius: 28, padding: 32 }}>
+            <p className="label" style={{ marginBottom: 24 }}>Upcoming Shows</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {SHOWS.map((s, i) => (
                 <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '10px 0',
-                  borderBottom: i < SHOWS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                  display: 'flex', alignItems: 'center', gap: 16,
+                  paddingBottom: 16,
+                  borderBottom: i < SHOWS.length - 1 ? '1px solid var(--border)' : 'none',
                 }}>
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-                    color: '#D4AF37', minWidth: 44,
-                  }}>{s.date}</span>
-                  <div>
-                    <p style={{ fontWeight: 500, fontSize: '0.875rem' }}>{s.venue}</p>
-                    <p className="body-sm" style={{ fontSize: '0.75rem' }}>{s.location}</p>
+                  <div style={{
+                    fontSize: 10, fontWeight: 800,
+                    color: 'var(--gold)', minWidth: 50, textAlign: 'center',
+                    padding: '6px 10px', borderRadius: 8, background: 'var(--gold-dim)'
+                  }}>{s.date}</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 2 }}>{s.venue}</p>
+                    <p className="body-sm" style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{s.location}</p>
                   </div>
                   <a href="#booking" style={{
-                    marginLeft: 'auto', fontSize: 11, fontWeight: 600,
-                    color: '#D4AF37', textDecoration: 'none', letterSpacing: '0.06em',
-                  }}>Book →</a>
+                    fontSize: 11, fontWeight: 700, color: 'var(--gold)', 
+                    textDecoration: 'none', letterSpacing: '0.05em',
+                  }}>BOOK</a>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* About */}
-          <div className="glass" style={{ borderRadius: 20, padding: 24 }}>
-            <p className="label" style={{ marginBottom: 12 }}>About DJ C6</p>
-            <p className="body-sm" style={{ lineHeight: 1.7 }}>
+          <div className="glass-card" style={{ borderRadius: 28, padding: 32 }}>
+            <p className="label" style={{ marginBottom: 16 }}>About DJ C6</p>
+            <p className="body-sm" style={{ lineHeight: 1.8, color: 'var(--text-2)' }}>
               Nairobi's premier DJ, blending Afrobeats, Amapiano, Hip Hop &amp; Gengetone.{' '}
-              7+ years, 200+ events. One mission:{' '}
-              <span style={{ color: '#D4AF37', fontWeight: 500 }}>make you feel every beat.</span>
+              <span className="text-gold" style={{ fontWeight: 700, WebkitTextFillColor: 'unset', background: 'none' }}>Pure energy, every time.</span>
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Tip Modal */}
+      {tippingId && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10000, padding: 24, animation: 'fade-in 0.3s'
+        }} onClick={() => setTippingId(null)}>
+          <form 
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => handleTip(e, MIXES.find(m => m.id === tippingId)?.title || '')}
+            className="glass"
+            style={{
+              width: '100%', maxWidth: 400, padding: 40, borderRadius: 32,
+              border: '1px solid rgba(255,255,255,0.1)',
+              position: 'relative'
+            }}
+          >
+            <button 
+              type="button"
+              onClick={() => setTippingId(null)}
+              style={{
+                position: 'absolute', top: 20, right: 20,
+                background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
+                fontSize: 24, cursor: 'pointer'
+              }}
+            >
+              ×
+            </button>
+
+            <div style={{ textAlign: 'center', marginBottom: 32 }}>
+              <div style={{ 
+                width: 64, height: 64, background: 'var(--gold-dim)', 
+                borderRadius: '50%', display: 'flex', alignItems: 'center', 
+                justifyContent: 'center', margin: '0 auto 20px', color: 'var(--gold)',
+                fontSize: 28
+              }}>
+                💰
+              </div>
+              <h3 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 8, letterSpacing: '-0.02em' }}>Tip for the Mix</h3>
+              <p className="body-sm" style={{ color: 'var(--text-3)' }}>
+                Directly support the movement via M-Pesa.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 32 }}>
+              <div>
+                <label className="label" style={{ marginBottom: 8, display: 'block' }}>M-Pesa Phone Number</label>
+                <input 
+                  type="tel" placeholder="07XX XXX XXX" className="input" 
+                  value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
+                  required autoFocus
+                />
+              </div>
+              <div>
+                <label className="label" style={{ marginBottom: 8, display: 'block' }}>Amount (KES)</label>
+                <input 
+                  type="number" placeholder="100" className="input" 
+                  value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <button disabled={loading} type="submit" className="btn btn-gold" style={{ width: '100%', height: 56 }}>
+              {loading ? 'Processing...' : 'Send M-Pesa Tip'}
+            </button>
+            <p style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+              Secure Payment via M-Pesa Daraja
+            </p>
+          </form>
+        </div>
+      )}
+
+
+
+      {/* Tip Toast */}
+      <div style={{
+        position: 'fixed', bottom: 32, left: '50%',
+        transform: toast.show ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(80px)',
+        opacity: toast.show ? 1 : 0, zIndex: 9999, pointerEvents: 'none',
+        transition: 'all 0.4s cubic-bezier(0.4,0,0.2,1)',
+        background: toast.ok ? 'rgba(61,186,106,0.15)' : 'rgba(212,55,55,0.15)',
+        border: `1px solid ${toast.ok ? 'rgba(61,186,106,0.4)' : 'rgba(212,55,55,0.4)'}`,
+        backdropFilter: 'blur(20px)', borderRadius: 12, padding: '14px 24px',
+        fontSize: '0.875rem', color: '#F5F5F7', whiteSpace: 'nowrap',
+      }}>
+        {toast.ok ? '✓ ' : '✕ '}{toast.msg}
       </div>
 
       <style>{`@media(max-width:760px){.block-grid{grid-template-columns:1fr!important;}}`}</style>

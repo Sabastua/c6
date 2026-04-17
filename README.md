@@ -56,8 +56,4 @@ A high-end, dynamic Web Application built for DJ C6 to manage bookings, merchand
 
 ## 🚀 Deploying to Vercel
 
-The application is heavily optimized for zero-config Vercel deployment:
-1. Push your repository to GitHub.
-2. Link the repository to your Vercel Dashboard.
-3. Completely copy the contents of your `.env.local` into the **Environment Variables** tab in your Vercel project settings.
-4. **Important:** Update your `MPESA_CALLBACK_URL` in Vercel to match your new production Vercel domain (e.g., `https://djc6.vercel.app/api/mpesa-callback`).
+

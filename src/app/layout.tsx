@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
@@ -31,6 +31,10 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
+        <div className="bg-aurora">
+          <div className="aurora-blob anim-aurora" style={{ top: '-10%', left: '-10%', background: 'var(--gold)' }}></div>
+          <div className="aurora-blob anim-aurora" style={{ bottom: '-10%', right: '-10%', background: 'var(--green)', animationDelay: '-5s' }}></div>
+        </div>
         {children}
       </body>
     </html>

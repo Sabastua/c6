@@ -2,12 +2,12 @@
 import { useState, useEffect, useRef } from 'react';
 
 const TYPES = [
-  { value: 'club',      label: 'Club Night',      icon: '🎉', deposit: 5000  },
-  { value: 'private',   label: 'Private Party',   icon: '🥂', deposit: 3000  },
-  { value: 'corporate', label: 'Corporate',        icon: '🏢', deposit: 8000  },
-  { value: 'wedding',   label: 'Wedding',          icon: '💍', deposit: 7000  },
-  { value: 'birthday',  label: 'Birthday',         icon: '🎂', deposit: 2500  },
-  { value: 'concert',   label: 'Festival',         icon: '🎪', deposit: 15000 },
+  { value: 'club',      label: 'Club Night',      icon: '🎉', rate: 5000,  deposit: 5000  },
+  { value: 'private',   label: 'Private Party',   icon: '🥂', rate: 3000,  deposit: 3000  },
+  { value: 'corporate', label: 'Corporate',        icon: '🏢', rate: 8000,  deposit: 8000  },
+  { value: 'wedding',   label: 'Wedding',          icon: '💍', rate: 7000,  deposit: 7000  },
+  { value: 'birthday',  label: 'Birthday',         icon: '🎂', rate: 2500,  deposit: 2500  },
+  { value: 'concert',   label: 'Festival',         icon: '🎪', rate: 15000, deposit: 15000 },
 ];
 
 function useReveal(ref: React.RefObject<HTMLElement | null>) {
@@ -24,7 +24,7 @@ export default function BookingSection() {
   const ref = useRef<HTMLElement>(null);
   useReveal(ref);
   const [type, setType] = useState('club');
-  const [form, setForm] = useState({ name: '', phone: '', email: '', date: '', location: '', notes: '' });
+  const [form, setForm] = useState({ clientName: '', phone: '', email: '', date: '', location: '', notes: '' });
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ show: false, msg: '', ok: true });
 
@@ -37,20 +37,47 @@ export default function BookingSection() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.phone || !form.date) return;
+    if (!form.clientName || !form.phone || !form.date) return;
     setLoading(true);
+
     try {
+      // 1. Optional backend notification (keeps records)
       const res = await fetch('/api/booking', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, eventType: type, deposit: current.deposit }),
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, eventType: type, rate: current.rate, deposit: current.deposit }),
       });
-      const d = await res.json();
-      if (d.success) {
-        showToast(`Booking sent! Pay KES ${current.deposit.toLocaleString()} deposit on your phone.`, true);
-        setForm({ name: '', phone: '', email: '', date: '', location: '', notes: '' });
-      } else showToast(d.error || 'Failed. Try again.', false);
-    } catch { showToast('Network error.', false); }
-    finally { setLoading(false); }
+      
+      // 2. WhatsApp Direct Redirect (User sends the message to DJ)
+      const waMessage = [
+        `*New Booking Request for DJ C6*`,
+        ``,
+        `*Name:* ${form.clientName}`,
+        `*Phone:* ${form.phone}`,
+        `*Email:* ${form.email || 'N/A'}`,
+        `*Event Type:* ${current.label}`,
+        `*Hourly Rate:* KES ${current.rate.toLocaleString()} / hr`,
+        `*Date:* ${form.date}`,
+        `*Location:* ${form.location || 'TBD'}`,
+        `*Notes:* ${form.notes || 'None'}`,
+        ``,
+        `_I'm ready to lock this date!_`
+      ].join('\n');
+
+      const encodedMsg = encodeURIComponent(waMessage);
+      const whatsappUrl = `https://wa.me/254706404928?text=${encodedMsg}`;
+      
+      // We open WhatsApp and also show a success toast
+      window.open(whatsappUrl, '_blank');
+      
+      showToast(`Redirecting to WhatsApp to finalize booking...`, true);
+      setForm({ clientName: '', phone: '', email: '', date: '', location: '', notes: '' });
+
+    } catch (err) { 
+      showToast('Something went wrong. Please try again.', false); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   return (
@@ -95,7 +122,7 @@ export default function BookingSection() {
                 <span style={{
                   fontSize: 11, fontWeight: 600, color: type === t.value ? '#D4AF37' : 'rgba(245,245,247,0.3)',
                 }}>
-                  KES {t.deposit.toLocaleString()}
+                  KES {t.rate.toLocaleString()} / hr
                 </span>
               </button>
             ))}
@@ -109,17 +136,17 @@ export default function BookingSection() {
               background: 'rgba(212,175,55,0.07)', border: '1px solid rgba(212,175,55,0.18)',
             }}>
               <span style={{ fontSize: '0.8rem', color: 'rgba(245,245,247,0.5)' }}>
-                {current.icon} {current.label} · Deposit
+                {current.icon} {current.label} · Hourly Rate
               </span>
               <span className="text-gold" style={{ fontWeight: 700 }}>
-                KES {current.deposit.toLocaleString()}
+                KES {current.rate.toLocaleString()} / hr
               </span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               {[
-                { label: 'Your Name *', key: 'name', placeholder: 'Full name', type: 'text' },
-                { label: 'M-Pesa Phone *', key: 'phone', placeholder: '0712 345 678', type: 'tel' },
+                { label: 'Your Name *', key: 'clientName', placeholder: 'Full name', type: 'text' },
+                { label: 'Phone Number *', key: 'phone', placeholder: '0712 345 678', type: 'tel' },
                 { label: 'Email', key: 'email', placeholder: 'you@email.com', type: 'email' },
                 { label: 'Event Date *', key: 'date', placeholder: '', type: 'date' },
               ].map(f => (
@@ -147,11 +174,18 @@ export default function BookingSection() {
             </div>
 
             <button type="submit" disabled={loading} className="btn btn-gold"
-              style={{ width: '100%', opacity: loading ? 0.6 : 1 }}>
-              {loading ? 'Processing…' : `🔒 Pay KES ${current.deposit.toLocaleString()} Deposit`}
+              style={{ width: '100%', opacity: loading ? 0.6 : 1, gap: 10 }}>
+              {loading ? 'Processing…' : (
+                <>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.185-.573c.948.517 2.039.888 3.144.889 3.181 0 5.767-2.586 5.768-5.766 0-3.18-2.587-5.765-5.766-5.766zm3.383 8.356c-.145.407-.722.753-1.021.796-.28.041-.634.07-.991-.044-.233-.075-.529-.12-1.144-.383-1.616-.69-2.659-2.333-2.739-2.44-.081-.106-.659-.876-.659-1.673 0-.797.411-1.188.557-1.348.145-.16.317-.188.423-.188.106 0 .211.001.304.006.098.005.231-.036.363.284.145.354.489 1.189.531 1.277.042.089.07.191.011.311-.059.12-.089.191-.177.301-.088.11-.19.245-.271.332-.098.106-.199.222-.086.417.114.195.505.834 1.085 1.35.748.665 1.379.871 1.573.968.195.097.309.081.423-.049.115-.13.489-.568.619-.762.13-.195.259-.163.438-.097.178.065 1.137.537 1.332.634.195.098.324.146.372.228.049.081.049.467-.096.874zM12 1c-6.075 0-11 4.925-11 11s4.925 11 11 11 11-4.925 11-11-4.925-11-11-11zm0 20c-4.963 0-9-4.037-9-9s4.037-9 9-9 9 4.037 9 9-4.037 9-9 9z"/>
+                  </svg>
+                  Book via WhatsApp
+                </>
+              )}
             </button>
             <p style={{ textAlign: 'center', marginTop: 10, fontSize: 11, color: 'rgba(245,245,247,0.3)' }}>
-              Secure · Lipa Na M-Pesa STK Push
+              Instant Confirmation · Send to WhatsApp
             </p>
           </form>
         </div>

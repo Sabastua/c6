@@ -9,7 +9,7 @@ export default function HeroSection() {
   useEffect(() => {
     if (!vizRef.current) return;
     const heights = [20, 35, 55, 45, 60, 40, 70, 50, 38, 62, 28, 48, 55, 35, 22];
-    const colors = ['#3DBA6A', '#D4AF37', '#3DBA6A', '#D4AF37', '#5AE68C'];
+    const colors = ['var(--green)', 'var(--gold)', 'var(--green)', 'var(--gold)', 'var(--green)'];
     const frags: HTMLDivElement[] = [];
     heights.forEach((h, i) => {
       const bar = document.createElement('div');
@@ -39,39 +39,26 @@ export default function HeroSection() {
         overflow: 'hidden',
       }}
     >
-      {/* Background Layers */}
       <HeroBackgroundSwiper />
       <MindMapBackground />
-
-      {/* Subtle ambient blobs */}
-      <div style={{
-        position: 'absolute', width: 600, height: 600, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(61,186,106,0.06) 0%, transparent 70%)',
-        top: '10%', left: '50%', transform: 'translateX(-50%)',
-        pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute', width: 400, height: 400, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(212,175,55,0.05) 0%, transparent 70%)',
-        bottom: '15%', right: '10%', pointerEvents: 'none',
-      }} />
 
       {/* Label pill */}
       <div
         className="glass"
         style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          padding: '7px 16px', borderRadius: 100, marginBottom: 32,
+          display: 'inline-flex', alignItems: 'center', gap: 10,
+          padding: '8px 20px', borderRadius: 100, marginBottom: 32,
           animation: 'fade-in 0.7s 0.2s both',
+          border: '1px solid rgba(255,255,255,0.1)'
         }}
       >
-        <span style={{
-          width: 6, height: 6, borderRadius: '50%',
-          background: '#3DBA6A',
-          boxShadow: '0 0 8px #3DBA6A',
+        <div style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: 'var(--green)',
+          boxShadow: '0 0 12px var(--green)',
         }} />
-        <span className="label" style={{ color: 'rgba(245,245,247,0.5)' }}>
-          Nairobi's Premier DJ
+        <span className="label">
+          Nairobi's Premier DJ Experience
         </span>
       </div>
 
@@ -79,72 +66,38 @@ export default function HeroSection() {
       <h1
         className="display"
         style={{ 
-          animation: 'fade-in 0.8s 0.4s both', 
+          animation: 'fade-in 1s 0.3s both', 
           marginBottom: 24, 
-          maxWidth: 780,
+          maxWidth: 900,
         }}
       >
-        The Sound
+        <span className="text-gradient">The Sound</span>
         <br />
-        <span 
-          style={{ 
-            color: '#D4AF37',
-            display: 'inline-block',
-            animation: 'pulse-glow 3s infinite alternate ease-in-out',
-          }}
-        >
-          You Feel.
-        </span>
+        <span className="text-gold">You Feel.</span>
       </h1>
       
-      {/* Dynamic Keyframes injected dynamically just for the glow */}
-      <style>{`
-        @keyframes pulse-glow {
-          0% { text-shadow: 0 0 20px rgba(212, 175, 55, 0.1); transform: scale(1); }
-          100% { text-shadow: 0 0 40px rgba(212, 175, 55, 0.6); transform: scale(1.02); }
-        }
-      `}</style>
-
       <p
         className="body-lg"
-        style={{ maxWidth: 480, marginBottom: 40, animation: 'fade-in 0.8s 0.6s both' }}
+        style={{ 
+          maxWidth: 540, 
+          marginBottom: 48, 
+          animation: 'fade-in 1s 0.5s both',
+          color: 'var(--text-2)'
+        }}
       >
-        Request a song live, book your next event, or just vibe. DJ C6 — blending Afrobeats, Amapiano &amp; more.
+        Experience the fusion of Afrobeats, Amapiano & World Club Anthems. 
+        Live song requests and premium event bookings tailored for you.
       </p>
 
       {/* CTAs */}
       <div style={{
-        display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center',
-        animation: 'fade-in 0.8s 0.8s both', marginBottom: 64,
-        position: 'relative', zIndex: 10,
+        display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center',
+        animation: 'fade-in 1s 0.7s both', marginBottom: 80,
       }}>
-        <a href="#request" className="btn btn-gold" style={{
-          boxShadow: '0 0 20px rgba(212,175,55,0.4)',
-          transition: 'all 0.3s ease'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 0 30px rgba(212,175,55,0.8)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1) translateY(0)';
-          e.currentTarget.style.boxShadow = '0 0 20px rgba(212,175,55,0.4)';
-        }}>
+        <a href="#request" className="btn btn-gold">
           🎵 Request Song
         </a>
-        <a href="#booking" className="btn btn-ghost" style={{
-          transition: 'all 0.3s ease'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)';
-          e.currentTarget.style.borderColor = '#3DBA6A';
-          e.currentTarget.style.color = '#3DBA6A';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1) translateY(0)';
-          e.currentTarget.style.borderColor = '';
-          e.currentTarget.style.color = '';
-        }}>
+        <a href="#booking" className="btn btn-ghost">
           Book an Event →
         </a>
       </div>
@@ -153,23 +106,24 @@ export default function HeroSection() {
       <div
         ref={vizRef}
         style={{
-          display: 'flex', alignItems: 'flex-end', gap: 5,
-          height: 70, animation: 'fade-in 0.8s 1s both',
+          display: 'flex', alignItems: 'flex-end', gap: 6,
+          height: 80, animation: 'fade-in 1s 0.9s both',
         }}
       />
 
       {/* Scroll hint */}
       <div style={{
-        position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-        animation: 'fade-in 0.8s 1.4s both',
+        position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+        animation: 'fade-in 1s 1.2s both',
       }}>
-        <span style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(245,245,247,0.25)' }}>
-          Scroll
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-3)' }}>
+          Explore
         </span>
         <div style={{
-          width: 1, height: 40,
-          background: 'linear-gradient(to bottom, rgba(212,175,55,0.5), transparent)',
+          width: 1, height: 60,
+          background: 'linear-gradient(to bottom, var(--gold), transparent)',
+          opacity: 0.5
         }} />
       </div>
     </section>

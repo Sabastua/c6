@@ -23,6 +23,10 @@
   --blur-md:   blur(24px);
   --blur-lg:   blur(60px);
 
+  --bg-gradient-top: rgba(8,12,8,0.8);
+  --bg-transparent:  rgba(0,0,0,0);
+  --bg-opaque:       rgba(0,0,0,0.9);
+
   --r-sm:  12px;
   --r-md:  20px;
   --r-lg:  32px;

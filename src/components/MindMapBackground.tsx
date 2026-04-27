@@ -48,7 +48,7 @@ export default function MindMapBackground() {
   useEffect(() => {
     const cvs = canvasRef.current;
     if (!cvs) return;
-    const ctx = cvs.getContext('2d', { alpha: false });
+    const ctx = cvs.getContext('2d');
     if (!ctx) return;
 
     let width = window.innerWidth;
@@ -128,12 +128,10 @@ export default function MindMapBackground() {
     const handleMouseLeave = () => { isHovering = false; };
     const handleResize = () => {
       const parent = cvs.parentElement;
-      if (parent) {
-        width = parent.clientWidth;
-        height = parent.clientHeight;
-        cvs.width = width;
-        cvs.height = height;
-      }
+      width = parent?.clientWidth || window.innerWidth;
+      height = parent?.clientHeight || window.innerHeight;
+      cvs.width = width;
+      cvs.height = height;
     };
 
     // Initial resize to fit parent instead of window
@@ -154,6 +152,11 @@ export default function MindMapBackground() {
     const loop = () => {
       // Background clear instead of solid fill to reveal underneath swiper
       ctx.clearRect(0, 0, width, height);
+
+      // Debug text
+      ctx.fillStyle = 'rgba(212,175,55,0.4)';
+      ctx.font = '10px monospace';
+      ctx.fillText(`MindMap: ${width}x${height} | Nodes: ${nodes.length}`, 10, 20);
 
       // --- PHYSICS ---
       // Edges (Springs)
@@ -255,12 +258,12 @@ export default function MindMapBackground() {
           (n1.y < 0 && n2.y < 0) || (n1.y > height && n2.y > height)
         ) continue;
 
-        let alpha = 0.05;
+        let alpha = 0.15; // Increased from 0.05
         if (hoveredNode !== null) {
           if (e.source === hoveredNode || e.target === hoveredNode) {
-            alpha = 0.5; // Highlight connected edges
+            alpha = 0.7; // Brighter highlight
           } else {
-            alpha = 0.01; // Dim out
+            alpha = 0.04; // Less dim
           }
         }
 
@@ -327,17 +330,17 @@ export default function MindMapBackground() {
       position: 'absolute',
       top: 0, left: 0, right: 0, bottom: 0,
       width: '100%', height: '100%',
-      zIndex: -2, // Behind hero content but above swiper
+      zIndex: 50, // Temporary: Move to extreme front to see if it's being covered.
       overflow: 'hidden',
       pointerEvents: 'none', 
-      opacity: 0.8, 
+      opacity: 1, 
     }}>
       <div 
         style={{
-          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'auto'
+          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none'
         }}
       >
-        <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+        <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%', outline: '1px solid rgba(212,175,55,0.1)' }} />
       </div>
     </div>
   );

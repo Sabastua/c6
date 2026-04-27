@@ -9,8 +9,8 @@ export const MPESA_CONFIG = {
   shortcode: process.env.MPESA_SHORTCODE || '174379',
   passkey: process.env.MPESA_PASSKEY!,
   callbackUrl: process.env.MPESA_CALLBACK_URL!,
-  // Switch base URL based on environment
-  baseUrl: process.env.NODE_ENV === 'production' 
+  // Allow forcing environment via MPESA_ENV, otherwise fallback to NODE_ENV
+  baseUrl: (process.env.MPESA_ENV === 'production' || (process.env.NODE_ENV === 'production' && !process.env.MPESA_ENV))
     ? 'https://api.safaricom.co.ke' 
     : 'https://sandbox.safaricom.co.ke',
 };

@@ -30,7 +30,7 @@ export default function RootLayout({
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
         />
       </head>
-      <body className="antialiased">
+      <body className="antialiased" suppressHydrationWarning>
         <div className="bg-aurora">
           <div className="aurora-blob anim-aurora" style={{ top: '-10%', left: '-10%', background: 'var(--gold)' }}></div>
           <div className="aurora-blob anim-aurora" style={{ bottom: '-10%', right: '-10%', background: 'var(--green)', animationDelay: '-5s' }}></div>

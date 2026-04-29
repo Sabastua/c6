@@ -1,0 +1,34 @@
+name: Website Health Check Monitor
+
+on:
+  schedule:
+    # Runs every 30 minutes. (GitHub actions minimum reliable cron interval is ~15-30 mins)
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Allows you to manually trigger the check from the GitHub Actions tab
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit Health Endpoint
+        run: |
+          # Target is the live Vercel domain
+          TARGET_URL="https://c6-steel.vercel.app/api/health"
+          
+          echo "Pinging $TARGET_URL ..."
+          
+          # We use curl to fetch the JSON response and capture the HTTP Status Code
+          RESPONSE=$(curl -s -w "\n%{http_code}" "$TARGET_URL")
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$ d')
+          
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Website is HEALTHY (Status: $HTTP_STATUS)"
+            echo "Response: $BODY"
+            exit 0
+          else
+            echo "❌ Website is DEGRADED or DOWN (Status: $HTTP_STATUS)"
+            echo "Response: $BODY"
+            echo "::error::Health check failed! Check M-Pesa connection or Vercel logs."
+            exit 1
+          fi

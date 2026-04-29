@@ -29,7 +29,7 @@ export async function getMpesaToken(): Promise<string> {
   
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Failed to get M-Pesa token: ${err}`);
+    throw new Error(`Failed to get M-Pesa token (Status: ${res.status}): ${err || res.statusText}`);
   }
 
   const data = await res.json();

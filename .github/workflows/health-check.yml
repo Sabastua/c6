@@ -2,33 +2,77 @@ name: Website Health Check Monitor
 
 on:
   schedule:
-    # Runs every 30 minutes. (GitHub actions minimum reliable cron interval is ~15-30 mins)
-    - cron: '*/30 * * * *'
+    # Runs once a week (Every Sunday at 00:00 UTC)
+    - cron: '0 0 * * 0'
   workflow_dispatch: # Allows you to manually trigger the check from the GitHub Actions tab
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Hit Health Endpoint
+        id: health_check
         run: |
-          # Target is the live Vercel domain
           TARGET_URL="https://c6-steel.vercel.app/api/health"
-          
           echo "Pinging $TARGET_URL ..."
           
-          # We use curl to fetch the JSON response and capture the HTTP Status Code
+          # Measure response time
+          START_TIME=$(date +%s%3N)
           RESPONSE=$(curl -s -w "\n%{http_code}" "$TARGET_URL")
+          END_TIME=$(date +%s%3N)
+          DURATION=$((END_TIME - START_TIME))
+          
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | sed '$ d')
           
-          if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "✅ Website is HEALTHY (Status: $HTTP_STATUS)"
-            echo "Response: $BODY"
-            exit 0
-          else
-            echo "❌ Website is DEGRADED or DOWN (Status: $HTTP_STATUS)"
-            echo "Response: $BODY"
-            echo "::error::Health check failed! Check M-Pesa connection or Vercel logs."
-            exit 1
+          if [ -z "$HTTP_STATUS" ]; then
+            HTTP_STATUS="500"
+            BODY="No response / Network error"
           fi
+          
+          # Write results to output and file
+          echo "$BODY" > response.json
+          echo "HTTP_STATUS=$HTTP_STATUS" >> $GITHUB_ENV
+          echo "DURATION=${DURATION}ms" >> $GITHUB_ENV
+          
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "STATUS=HEALTHY" >> $GITHUB_ENV
+            echo "is_healthy=true" >> $GITHUB_OUTPUT
+            echo "✅ Website is HEALTHY (Status: $HTTP_STATUS)"
+          else
+            echo "STATUS=DEGRADED/DOWN" >> $GITHUB_ENV
+            echo "is_healthy=false" >> $GITHUB_OUTPUT
+            echo "❌ Website is DEGRADED or DOWN (Status: $HTTP_STATUS)"
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate HTML Report
+        run: |
+          node scripts/generate-report-html.mjs "https://c6-steel.vercel.app/api/health" response.json "${{ env.HTTP_STATUS }}" "${{ env.DURATION }}"
+
+      - name: Send Mail Report
+        uses: dawidd6/action-send-mail@v3
+        if: always()
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT || 465 }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Website Health Check: ${{ env.STATUS }} (${{ github.repository }})"
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_FROM || 'GitHub Actions <noreply@github.com>' }}
+          secure: true
+          html_body: file://report.html
+
+      - name: Verify health check outcome
+        if: steps.health_check.outputs.is_healthy != 'true'
+        run: |
+          echo "::error::Health check failed! Check M-Pesa connection or Vercel logs."
+          exit 1
